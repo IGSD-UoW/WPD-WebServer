@@ -1,6 +1,11 @@
 var express = require('express')
 
-var app = express()
+// var app = express()
+// var expressWs = require('express-ws')
+var expressWs = require('@small-tech/express-ws')
+var expressWs = expressWs(express());
+var app = expressWs.app;
+
 app.set('views', __dirname)
 
 app.use(express.json()) // for parsing application/json
@@ -11,6 +16,7 @@ app.use(express.json()) // for parsing application/json
 app.use(require('./site/router'))
 app.use('/floodmemory', require('./floodmemory/router'))
 app.use('/users', require('./user/router'))
+app.use('/hot', require('./hot/router'))
 
 // FINALLY, use any error handlers
 app.use(require('./error/not-found'))

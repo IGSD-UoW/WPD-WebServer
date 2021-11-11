@@ -114,6 +114,36 @@ docker exec <container_id> bash -c 'echo "$ENV_VAR"'
 sudo docker network inspect bridge 
 ```
 
+### Transfering Shapefiles to Geoserver
+
+- Transfer file from your local machine to server by
+```
+scp <FilesToSend> mkhan@waterproofing.geog.uni-heidelberg.de:/home/m/mkhan/wpd/spatial_data
+```
+
+> Currently we are using `/home/m/mkhan/wpd/spatial_data` folder to place all our data files
+
+- Copy the files into Geoserver container
+```
+sudo docker ps -a
+```
+
+- Take the Geoserver's Container ID and 
+```
+sudo docker cp <SourceFileToCopy> <GeoserverContainerID>:<FileLocation>
+```
+
+- Get into Geoserver conatiner
+```
+sudo docker exec -it geoserverWpd bash
+```
+
+> Get the data directory where we are storing the data for Geoserver
+> `echo $GEOSERVER_DATA_DIR`
+> should return you something like 
+> `/opt/geoserver/data_dir/data`
+
+
 ## Further help
 
 For any bugs or future enhancements open an [issue](https://gitlab.gistools.geog.uni-heidelberg.de/waterproofing-data/webportal_server/-/issues) and label it as `Bug` or `Ideas` respectively. For any other queries contact Mohammed Rizwan Khan <rizwan@uni-heidelberg.de>.

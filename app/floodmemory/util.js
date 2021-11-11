@@ -66,12 +66,17 @@ fmUtil.removePagesWithTime = (pages) => {
  */
 fmUtil.getTimeFromPages = (pages) => {
   // console.log('>>> getTimeFromPages ')
-  return pages.map( page => {
+  let allPages = pages.map( page => {
     const desc = this.tryParseJSON(page.description)
     if(!desc) {
       return;
     }
-    return desc.time
+    // return desc.time
+    return new moment(desc.time).format('YYYY-MM')
+  })
+
+  return allPages.filter( (ele, index, self) => {
+    return index === self.indexOf(ele)
   })
 }
 

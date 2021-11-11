@@ -115,6 +115,41 @@ function getPageDetails(graph, pageId) {
   return query();
 }
 
+/**
+ * Returns times for all Flood memories
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ */
+function getFMTimes(req, res) {
+  console.log('>>> FloodMemory >>> getFMTimes ');
+  fmUtil.getStoriesList(req).then( 
+    async result => {
+      // get time from all FM
+      // arange them in ascending order
+      let sortedArray  = await fmUtil.sortPagesByTime(result.pages.list)
+      sortedArray = await fmUtil.removePagesWithTime(sortedArray)
+      // console.log('sortedArray = ', sortedArray)
+      const available_times = await fmUtil.getTimeFromPages(sortedArray)
+      // console.log(fmUtil.getTimeFromPages(sortedArray))
+      let resObj = {
+        available_times
+      }
+      res.send(resObj)
+    },
+    err => {
+      console.error(err)
+      res.status(500).send(err)
+    }
+  );
+}
+
+/**
+ * Gets all Flood memories spatio-temporal filtered 
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ */
 function getList(req, res) {
   console.log('>>> Floodmemory >>> getList ', req.body);
   fmUtil.getStoriesList(req).then(
@@ -132,6 +167,39 @@ function getList(req, res) {
         res.send(pagesResponse)
       }
       
+    },
+    err => {
+      console.error(err)
+      res.status(500).send(err)
+    }
+  );
+}
+
+/**
+ * Gets all Flood memories without apply and filter on it
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ */
+function getAllFMList(req, res) {
+  console.log('>>> Floodmemory >>> getAllFMList ', req.body);
+  fmUtil.getStoriesList(req).then(
+    async result => {
+      // console.log(JSON.stringify(result, null, 2));
+      // console.log(result.pages.list)
+      /* let filteredPages = await getFilteredFeatures(req.body.bbox, req.body.time, result.pages.list)
+      pagesResponse.pages.list = filteredPages
+      if(filteredPages.length === 0) {
+        res.send(pagesResponse)
+      }
+      else {
+        const sortedPagesByTime = await fmUtil.sortPagesByTime(filteredPages)
+        pagesResponse.pages.list = sortedPagesByTime;
+        res.send(pagesResponse)
+      } */
+      pagesResponse.pages.list = result.pages.list.filter((page) => fmUtil.tryParseJSON(page.description))
+      console.log(pagesResponse)
+      res.send(pagesResponse)
     },
     err => {
       console.error(err)
@@ -310,6 +378,7 @@ async function createPage(req, res) {
   assets.videos = req.body.videos ? req.body.videos : []
   assets.images = req.body.images ? req.body.images : []
   assets.audios = req.body.audios ? req.body.audios : []
+  assets.isApproxDate = req.body.isApproxDate
 
   // const locTimInDesc = addExtraBackSlash(JSON.stringify(locationNTime));
   
@@ -417,6 +486,7 @@ async function editPage(req, res) {
   assets.videos = req.body.videos ? req.body.videos : []
   assets.images = req.body.images ? req.body.images : []
   assets.audios = req.body.audios ? req.body.audios : []
+  assets.isApproxDate = req.body.isApproxDate
 
   let content = `<p>${req.body.content}</p>
     <input type="hidden" id="assets" value=${JSON.stringify(assets)}>
@@ -898,7 +968,9 @@ function addExtraBackSlash(str) {
 router.use(express.static(path.join(__dirname, '../../wwwroot')))
 // router.use(express.static(path.join(__dirname, './uploads')));
 router.use(cors())
+router.get('/times', getFMTimes)
 router.post('/list', getList)
+router.post('/all', getAllFMList)
 router.get('/view', getPage)
 router.post('/create', createPage)
 router.post('/edit', editPage)

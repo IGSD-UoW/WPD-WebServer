@@ -1,10 +1,12 @@
 var express     = require('express')
 var join        = require('path').join
 var cors        = require('cors')
+// const WebSocket = require('ws');
 
 const fmUtil    = require('../floodmemory/util')
 
 var router = new express.Router()
+// const wss = new WebSocket.Server({ server: express });
 
 function home (req, res) {
   // res.render('site/home')
