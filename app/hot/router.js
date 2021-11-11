@@ -651,11 +651,11 @@ function requestHandler(client, request) {
   else if(request.url.indexOf('formsanswers') !== -1 && request.url.indexOf('databybbox') === -1)
     getFormData(client, request)
 
-  // timeout after 60 min = 3600000 milliseconds
+  // timeout after 15 min = 900000 milliseconds
   // since we dont want unlimited time ws
   setTimeout(() => {
     closeOnTimeout(client)
-  }, 3600000)
+  }, config.websocketTimeout)
 
   client.on('close', () => {
     log.info(`client ${request.socket.remoteAddress} disconnected which was connected to ${client.room}`)

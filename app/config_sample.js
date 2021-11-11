@@ -13,6 +13,17 @@ config.postgresdb = {
   schema: 'wpdapi'
 }
 
+config.azurePostgresdb = {
+  host: 'database.azure.com',
+  port: 5432,
+  database: 'database',
+  user: 'username',
+  password: 'password',
+  max: 20, // use up to 20 connections
+  ssl: true
+  // "types" - in case you want to set custom type parsers on the pool level
+}
+
 config.wiki = {
   port: process.env.WIKI_PORT || 8080,
   host: process.env.WIKI_HOST || 'localhost',
@@ -23,15 +34,12 @@ config.wikiApi = {
   url: 'http://'+ config.wiki.host +':'+ config.wiki.port +'/graphql'
 }
 
-// config.mongodb = {
-//   port: process.env.MONGODB_PORT || 27017,
-//   host: process.env.MONGODB_HOST || 'localhost'
-// }
-
 config.wikiApiUserCredentials = {
   username: "api@wpd.com",
   password: "api@wpd.com"
 }
+
+config.websocketTimeout = 900000
 
 if (PRODUCTION) {
   // for example
@@ -39,6 +47,3 @@ if (PRODUCTION) {
   config.postgresdb.host = 'waterproofing.geog.uni-heidelberg.de';
   config.wiki.host = 'waterproofing.geog.uni-heidelberg.de';
 }
-// config.db same deal
-// config.email etc
-// config.log

@@ -1,6 +1,6 @@
 {
   "name": "wpd_webportal_server",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "WPD Webportal API Server which runs on Node.js on Docker",
   "author": "Mohammed Rizwan Khan<rizwan@uni-heidelberg.de>",
   "main": "server.js",
