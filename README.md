@@ -68,11 +68,50 @@ git pull
 ```
 
 #### Start the server as standlone
-```
-npm run start
-```
+~~npm run start~~
+
+~~nohup npm run start > output.log &~~
+
+> ref: To run server in background https://www.dev2qa.com/how-to-run-node-js-server-in-background/
 > if gets an error saying port in use can use $pkill -f node and $pkill -f nodejs to kill all node server
 > ref: https://stackoverflow.com/questions/31649267/how-to-kill-a-nodejs-process-in-linux
+
+Using [pm2 for running app](https://www.digitalocean.com/community/tutorials/how-to-use-pm2-to-setup-a-node-js-production-environment-on-an-ubuntu-vps) So that app server restarts when shutsdown unexpectedly
+
+To start app server (required only first time)
+
+```
+cd ~/wpd/server/
+pm2 start app/server.js
+```
+
+Use this command to know the status, pid, etc 
+
+```
+pm2 status
+```
+
+To stop app in pm2 
+
+```
+pm2 stop <id>
+```
+
+Applicaton logs are stored at `cat /home/m/mkhan/.pm2/logs/server-out.log`
+
+and error logs at `cat /home/m/mkhan/.pm2/logs/server-error.log`
+
+To see logs 
+
+```
+pm2 log
+```
+
+To see monitoring tool with other server details
+
+```
+pm2 monit
+```
 
 #### OR Run server as Docker container
 
@@ -143,6 +182,23 @@ sudo docker exec -it geoserverWpd bash
 > should return you something like 
 > `/opt/geoserver/data_dir/data`
 
+## Step for changing max file size to upload eg: images, videos
+- Get into wiki conatiner
+```
+sudo docker exec -it wiki2 bash
+```
+
+- Edit file name config.yml residing at /wiki in wiki container
+```
+vi config.yml
+
+// change the file size as required here
+uploads:      
+  maxFileSize: 20971520
+  maxFiles: 10 
+```
+
+> Further info at https://docs.requarks.io/install/config#upload-limits
 
 ## Further help
 
