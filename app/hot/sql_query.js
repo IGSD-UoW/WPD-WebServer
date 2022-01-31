@@ -567,6 +567,8 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             fa.id as formsanswersid, 
             f.code as formcode,
             ui.id as formsanswersuserinformer,
+            ui.nickname as formsanswersuserinformernickname,
+            ui.institution as formsanswersuserinformerinstitution,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -588,7 +590,7 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             1=1 
             ${whereClause}
             and fa.id = '${faid}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution,formsanswerslatitude, formsanswerslongitude
     ) fa 
     `
 }
@@ -661,4 +663,63 @@ sql_query.getAllFormsTypesWithMinAndMaxTime = (db_schema) => {
         group by f.id    
     ) formsagg`
 
+}
+
+
+
+
+//=========================================================================================================================================================================
+/**
+ * Query to get all formsAnswers for the given spatial point with its buffer range
+ * belonging to a specific forms.code
+ * 
+ * @param {number} userid formsAnswersId
+ //* @param {number} lat latitude of the point of interest
+ //* @param {number} lon longitude of the point of interest
+ //* @param {number} buffer radius of buffer to create in meters from the point of interest
+ * @param {number} limit number of formsAnswers limited to
+ * @param {string} db_schema 
+ * @returns {string} 
+ */
+ sql_query.fieldsAnswersData = (userid, timeStart, timeEnd, db_schema, userSchema) => {
+    console.log('>>> fieldsAnswersData ')
+    let clippedGeom = `ST_AsGeoJSON(geom) as formsanswersgeom`
+    let whereClause = ''
+
+    if(timeStart && timeEnd)
+        whereClause = `
+            and ((fia.dtfilling BETWEEN '${timeStart}' AND '${timeEnd}') or fia.dtfilling is null)
+            `
+
+    return `
+    select array_to_json(array_agg(fa))
+    from
+    (
+        select
+            fa.id as formsanswersid, 
+            f.code as formcode,
+            ui.id as formsanswersuserinformer,
+            fa.latitude as formsanswerslatitude,
+            fa.longitude as formsanswerslongitude,
+            ${clippedGeom}
+            , json_agg(json_build_object(
+                'fieldsanswersid', fia.id, 
+                'fieldsanswersfieldsid',fia.idfields,
+                'fieldname', ff."name", 
+                'fieldsanswersvalue', fia.value, 
+                'fieldsanswersdtfilling',fia.dtfilling
+                ) order by fia.dtfilling 
+            ) as array_to_json
+        from ${db_schema}.formsanswers fa
+        inner join ${db_schema}.forms f on (fa.idforms = f.id )
+        inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fa.id) 
+        inner join ${db_schema}.fields ff on (ff.id = fia.idfields)
+        inner join ${userSchema}.users ui on fa.idusersinformer = ui.id
+
+        where 
+            1=1 
+            ${whereClause}
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+    ) fa 
+    `
 }
