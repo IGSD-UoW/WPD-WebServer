@@ -563,9 +563,7 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
         select
             fa.id as formsanswersid, 
             f.code as formcode,
-            ui.id as formsanswersuserinformer, 
-            ui.nickname as formsanswersuserinformernickname,
-            ui.institution as formsanswersuserinformerinstitution,
+            ui.id as formsanswersuserinformer,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -586,7 +584,7 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             1=1 
             ${whereClause}
             and fa.id = '${faid}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution, formsanswerslatitude, formsanswerslongitude
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
     ) fa 
     `
 }
