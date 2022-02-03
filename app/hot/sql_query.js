@@ -516,8 +516,6 @@ sql_query.formsAnswersData = (fcode, lat, lon, buffer, timeStart, timeEnd, limit
             fa.id as formsanswersid, 
             f.code as formcode,
             ui.id as formsanswersuserinformer,
-            ui.nickname as formsanswersuserinformernickname,
-            ui.institution as formsanswersuserinformerinstitution,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -530,7 +528,7 @@ sql_query.formsAnswersData = (fcode, lat, lon, buffer, timeStart, timeEnd, limit
         where 
             ${whereClause}
             and f.code = '${fcode}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution, formsanswerslatitude, formsanswerslongitude
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
         ${limitClause}
     ) fa 
     `
@@ -566,6 +564,8 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             fa.id as formsanswersid, 
             f.code as formcode,
             ui.id as formsanswersuserinformer,
+            ui.nickname as formsanswersuserinformernickname,
+            ui.institution as formsanswersuserinformerinstitution,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -586,7 +586,7 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             1=1 
             ${whereClause}
             and fa.id = '${faid}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution, formsanswerslatitude, formsanswerslongitude
     ) fa 
     `
 }
