@@ -586,7 +586,7 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             1=1 
             ${whereClause}
             and fa.id = '${faid}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution, formsanswerslatitude, formsanswerslongitude
     ) fa 
     `
 }
