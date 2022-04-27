@@ -1,3 +1,8 @@
+// =============
+// FILE IS OBSOLETE to DASHBOARD
+// =============
+
+
 var createSubscriber  = require('pg-listen');
 var bole              = require('bole')
 var config            = require('./config')

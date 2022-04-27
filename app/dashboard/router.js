@@ -1,36 +1,26 @@
-var express           = require('express')
-var expressWs         = require('@small-tech/express-ws')
-var join              = require('path').join
+var express = require('express')
+var expressWs = require('@small-tech/express-ws')
+var join = require('path').join
 // var cors           = require('cors')
 // var createSubscriber  = require('pg-listen');
-var pgp               = require('pg-promise')(/* options */)
-var bole              = require('bole');
-var dbSubscriber    = require('../initPglisten')
-var sql_query         = require('../hot/sql_query')
-var config            = require('../config')
+var pgp = require('pg-promise')(/* options */)
+var bole = require('bole');
+var dbSubscriber = require('../initPglisten')
+var sql_query = require('../dashboard/sql_query')
+var config = require('../config')
 // const WebSocket     = require('ws');
 
 // var expressWs = require('express-ws')(express());
 
 var router = new express.Router()
-var expressWs = expressWs(express());
+var expressWebSocket = expressWs(express());
 var log = bole('wpd-server')
 
 // global variable of WebSocket Server
 let globalWss = null;
 
-/* const cn = {
-  host: 'localhost',
-  port: 25432,
-  database: 'wpdWiki',
-  user: 'admin',
-  password: 'admin',
-  max: 30, // use up to 30 connections
-  ssl: false
-  // "types" - in case you want to set custom type parsers on the pool level
-}; */
-
-var db = pgp(config.azurePostgresdb)
+// DB CONNECTION - USES DEV_WPDAPI **
+var db = pgp(config.azurePostgresdbDEV)
 
 // const dbSchema = 'datalake';
 const dbSchema = 'public';
@@ -44,42 +34,54 @@ let resTemplate = {
   'success': true
 }
 
-// initpgListen()
+function search(req, res) {
+  log.info('>>> dashboard >>> search')
+  console.log(req.query)
+  // sample url params
+  // ws://localhost:9090/hot/databybbox?type=PLUVIOMETERS_OFFICIAL&bbox=-67.98451956245826,-10.09049971309554,-67.69796501946632,-9.900096285440455
 
-/* function initpgListen() {
-  // pg-listen
-  // const url = 'postgres://username:password@localhost/database'
-  // const databaseURL = 'postgres://admin:admin@localhost:25432/wpdWiki'
-  // const databaseURL = `postgres://${cn.user}:${cn.password}@${cn.host}:${cn.port}/${cn.database}`
+  let searchValue = req.query.value
 
-  // Accepts the same connection config object that the "pg" package would take
-  // dbSubscriber = createSubscriber({ connectionString: databaseURL })
-  dbSubscriber = createSubscriber(config.azurePostgresdb)
-  console.log(`Subscribed to postgres notification channel: ${channel}`);
-  // log.info('Subscribed to postgres notification channel: ', channel)
-  
-  dbSubscriber.events.on("error", (error) => {
-    console.error("Fatal database connection error:", error)
-    process.exit(1)
-  })
+  // check what type of data requested based on params received
+  tempSql_Query = sql_query.search(searchValue, dbSchema, userSchema)
 
-  process.on("exit", () => {
-    dbSubscriber.close();
-  })
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        // console.log('sent response at ', resTemplate.responseTimestamp)
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        // console.log('ERROR while executing DB-query to fetch data :', error)
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
 
-  dbSubscriber.connect().then(
-    ()=>{
-      // console.log('>>> connected to wpd-db '+cn.host)
-      log.info('connected to wpd-db '+ config.azurePostgresdb.host)
-      dbSubscriber.listenTo(channel)
-    },
-    ()=>{
-      dbSubscriber.close();
-      // console.log("Could not connect to wpd-db");
-      log.warn("Could not connect to wpd-db "+ config.azurePostgresdb.host)
-    }
-  );
-} */
+
+
+}
+
+
+
+// ======================
+// OLD CODE STARTS HERE
+// ======================
+
 
 function getData(ws, req) {
   log.info('>>> hot >>> getData')
@@ -212,6 +214,7 @@ function getData(ws, req) {
 
 function getDataByBbox(ws, req) {
   log.info('>>> hot >>> getDataByBbox')
+  console.log(req)
   // sample url params
   // ws://localhost:9090/hot/databybbox?type=PLUVIOMETERS_OFFICIAL&bbox=-67.98451956245826,-10.09049971309554,-67.69796501946632,-9.900096285440455
 
@@ -295,6 +298,7 @@ function getDataByBbox(ws, req) {
 
 function getHttpDataByBbox(req, res) {
   log.info('>>> hot >>> getDataByBbox')
+  console.log(req.query)
   // sample url params
   // ws://localhost:9090/hot/databybbox?type=PLUVIOMETERS_OFFICIAL&bbox=-67.98451956245826,-10.09049971309554,-67.69796501946632,-9.900096285440455
 
@@ -738,11 +742,19 @@ function getCapability(req, res) {
 
 router.use(express.static(join(__dirname, '../../wwwroot')))
 // router.use(cors())
+
+// New Endpoints
+router.ws('/search', requestHandler)
+router.get('/search', search)
+
+// Old Endpoints
 router.ws('/echo', echo)
 router.ws('/broadcast', broadcast)
 router.ws('/data', requestHandler)
+
 router.ws('/databybbox', requestHandler)
 router.get('/databybbox', getHttpDataByBbox)
+
 router.ws('/formsanswers', requestHandler)
 router.get('/formsanswers', getHttpFormData)
 // router.post('/capability', getCapability)

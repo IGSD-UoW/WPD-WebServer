@@ -1,12 +1,92 @@
 const sql_query = module.exports
 
+
+
+// /**
+//  * Query to get specific formsAnswers and all its fieldAnswers (attributes) associated to it in JSON format
+//  *
+//  * @param {number} fCode
+//  * @param {comma-seperated-numbers} bbox
+//  * @param {string} valueParam search Value
+//  * @param {string} db_schema
+//  * @returns {JSON}
+//  */
+
+
+/**
+ * Query to get all formsAnswers for the given spatial point with its buffer range and its fieldAnswers (attributes)
+ * belonging to a specific forms.code
+ *
+ * @param {string} searchValue form code/ form type
+ * @param {string} db_schema
+ * @returns {string}
+ */
+sql_query.search = (searchValue, db_schema, userSchema) => {
+    console.log('>>> search ')
+
+    return `
+    select array_to_json(array_agg(formsagg))
+    from (
+    
+    select * from fieldsanswers where idfields = 83 and value like '${searchValue}%')
+    
+     formsagg
+    `
+}
+
 /**
  * Query to get specific formsAnswers and all its fieldAnswers (attributes) associated to it in JSON format
- * 
- * @param {number} faId formsAnswers ID
- * @param {string} db_schema 
- * @returns {JSON} 
+ *
+ * @param {number} fCode
+ * @param {comma-seperated-numbers} bbox
+ * @param {string} valueParam search Value
+ * @param {string} db_schema
+ * @returns {JSON}
  */
+
+
+// sql_query.search = (fCode, bbox, valueParam, db_schema, userSchema) => {
+//     console.log('>>> Search ')
+//
+//     return `
+//     select array_to_json(array_agg(fa))
+//     from
+//     (
+//         select
+//             f.code as formcode,
+//             ui.id as formsanswersuserinformer,
+//             fa.latitude as formsanswerslatitude,
+//             fa.longitude as formsanswerslongitude,
+//             ST_AsGeoJSON(geom) as formsanswersgeom
+//             , json_agg(json_build_object(
+//                 'fieldsanswersid', fia.id,
+//                 'fieldsanswersfieldsid',fia.idfields,
+//                 'fieldname', ff."name",
+//                 'fieldsanswersvalue', fia.value,
+//                 'fieldsanswersdtfilling',fia.dtfilling
+//                 ) order by fia.dtfilling
+//             ) as array_to_json
+//         from ${db_schema}.formsanswers fa
+//         inner join ${db_schema}.forms f on (fa.idforms = f.id )
+//         inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fa.id)
+//         inner join ${db_schema}.fields ff on (ff.id = fia.idfields)
+//         inner join ${userSchema}.users ui on fa.idusersinformer = ui.id
+//
+//         where 1=1
+//             and ST_Intersects(fa.geom, ST_MakeEnvelope(${bbox}, 4326))
+//         group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+//     ) fa
+//     `
+// }
+
+/**
+ * Query to get specific formsAnswers and all its fieldAnswers (attributes) associated to it in JSON format
+ *
+ * @param {number} faId formsAnswers ID
+ * @param {string} db_schema
+ * @returns {JSON}
+ */
+
 sql_query.byId = (db_schema, userSchema) => {
     console.log('>>> byId ')
     return `select array_to_json(array_agg(fa))
@@ -99,6 +179,7 @@ sql_query.byIdWithBbox = (bbox, db_schema, userSchema) => {
             ui.id as formsanswersuserinformer,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
+            ST_AsGeoJSON(geom) as formsanswersgeom
             ST_AsGeoJSON(ST_Intersection(geom, ST_MakeEnvelope(${bbox}, 4326))) as formsanswersgeom
         from ${db_schema}.formsanswers fa
         inner join ${db_schema}.forms f on (fa.idforms = f.id )
@@ -270,38 +351,39 @@ sql_query.notifybyId = (lat, lon, buffer, timeStart, timeEnd, fiaAttribute, user
  * @returns {string} 
  */
 sql_query.dataByBbox = (fCode, bbox, db_schema, userSchema) => {
+    console.log(fCode)
     console.log('>>> dataByBbox ')
-    /* 
+    /*
     const returnQuery = `
     select array_to_json(array_agg(fa))
     from
     (
-    select 
-        fa.id as formsanswersid, 
-        f.code as formcode, 
-        ui.id as formsanswersuserinformer, 
+    select
+        fa.id as formsanswersid,
+        f.code as formcode,
+        ui.id as formsanswersuserinformer,
         fa.latitude as formsanswerslatitude,
         fa.longitude as formsanswerslongitude,
         ST_AsGeoJSON(ST_Intersection(geom, ST_MakeEnvelope(${bbox}, 4326))) as formsanswersgeom,
         (
             select array_to_json(array_agg(fia))
             from (
-                select 
+                select
                     fia.id as fieldsanswersid,
                     fia.idfields as fieldsanswersfieldsid,
                     ff.name as fieldname,
                     fia.value as fieldsanswersvalue,
                     fia.dtfilling as fieldsanswersdtfilling
-                from 
+                from
                     ${db_schema}.fieldsanswers fia,
                     ${db_schema}.fields ff
                 WHERE
                     fia.idformsanswers = fa.id
-                    and fia.idfields = ff.id 
+                    and fia.idfields = ff.id
                 ORDER BY fia.dtfilling
             ) fia
         ) as fias
-    from 
+    from
         ${db_schema}.formsanswers fa
         inner join ${db_schema}.forms f on fa.idforms = f.id
         inner join ${userSchema}.users ui on fa.idusersinformer = ui.id

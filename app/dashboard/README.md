@@ -1,4 +1,4 @@
-# Endpoint under /hot 
+# Endpoint under /dashboard 
 
 
 ### **/capability**
