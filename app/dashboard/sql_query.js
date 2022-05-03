@@ -28,9 +28,20 @@ sql_query.search = (searchValue, db_schema, userSchema) => {
     select array_to_json(array_agg(formsagg))
     from (
     
-    select * from fieldsanswers where idfields = 83 and value like '${searchValue}%')
     
-     formsagg
+    select f.id, aid.value placeid, an.value placename, atp.value placetype
+    from formsanswers f, fieldsanswers aid, fieldsanswers an, fieldsanswers atp
+    where f.id = aid.idformsanswers and
+    f.id = an.idformsanswers and
+    f.id = atp.idformsanswers and
+    f.idforms = 12 and
+    aid.idfields = 82 and
+    an.idfields = 83 and
+    atp.idfields = 84 and
+    an.value like '${searchValue}%'
+    limit 5
+    )
+    formsagg
     `
 }
 
