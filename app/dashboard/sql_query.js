@@ -45,14 +45,50 @@ sql_query.search = (searchValue, db_schema, userSchema) => {
     `
 }
 
+
+/**
+ * Query to get simple geometry using a place id - used after search click (user defines location)
+ * belonging to a specific forms.code
+ *
+ * @param {string} searchValue form code/ form type
+ * @param {string} db_schema
+ * @returns {string}
+ */
+
+sql_query.simpleGeometry = (locationID, db_schema, userSchema) => {
+    console.log('>>> simple geometry ')
+    console.log(locationID)
+
+    return `
+    select array_to_json(array_agg(formsagg))
+    from (
+    
+    select f.id, aid.value placeid, an.value placename, atp.value placetype, 
+    ST_X(ST_Centroid(ST_Transform(f.geom::geometry, 4326))) longitude,
+    ST_Y(ST_Centroid(ST_Transform(f.geom::geometry, 4326))) latitude
+    from formsanswers f, fieldsanswers aid, fieldsanswers an, fieldsanswers atp
+    where f.id = aid.idformsanswers and
+    f.id = an.idformsanswers and
+    f.id = atp.idformsanswers and
+    f.idforms = 12 and
+    aid.idfields = 82 and
+    an.idfields = 83 and
+    atp.idfields = 84 and
+    aid.value like '${locationID}%'
+    
+    )
+    formsagg
+    `
+}
+
 /**
  * Query to get specific formsAnswers and all its fieldAnswers (attributes) associated to it in JSON format
  *
- * @param {number} fCode
- * @param {comma-seperated-numbers} bbox
- * @param {string} valueParam search Value
- * @param {string} db_schema
- * @returns {JSON}
+ // * @param {number} fCode
+ // * @param {comma-seperated-numbers} bbox
+ // * @param {string} valueParam search Value
+ // * @param {string} db_schema
+ // * @returns {JSON}
  */
 
 

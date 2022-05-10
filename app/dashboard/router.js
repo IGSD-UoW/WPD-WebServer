@@ -77,6 +77,49 @@ function search(req, res) {
 }
 
 
+// SIMPLE GEOMETRY - AFTER USER DEFINES LOCATION
+
+function simpleGeometry(req, res) {
+  log.info('>>> dashboard >>> simple geometry')
+  console.log(req.query)
+
+  let searchValue = req.query.id
+
+  // check what type of data requested based on params received
+  tempSql_Query = sql_query.simpleGeometry(searchValue, dbSchema, userSchema)
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        // console.log('sent response at ', resTemplate.responseTimestamp)
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        // console.log('ERROR while executing DB-query to fetch data :', error)
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+
+
+
+}
+
+
 
 // ======================
 // OLD CODE STARTS HERE
@@ -117,7 +160,7 @@ function getData(ws, req) {
   // temporal
   else if((!lat && !lon && !buffer) && (timeStart && timeEnd)){
     tempSql_Query = sql_query.dataQuery(tempFormType, lat, lon, buffer, timeStart, timeEnd, limit, dbSchema, userSchema)
-    // if request is for temporal then newly inserted values 
+    // if request is for temporal then newly inserted values
     tempSql_QueryById = sql_query.notifybyIdWithFia(tempFormType, lat, lon, buffer, timeStart, timeEnd, dbSchema, userSchema)
   }
   // only bbox
@@ -144,7 +187,7 @@ function getData(ws, req) {
     return
   }
   // console.log('tempSql_Query = ', tempSql_Query)
-  
+
   db.one(tempSql_Query)
   .then( data => {
     // check if form type doesn't exist in DB
@@ -170,7 +213,7 @@ function getData(ws, req) {
     dbSubscriber.notifications.on(channel, (payload) => {
       // Payload as passed to dbSubscriber.notify() (see below)
 
-      if(ws.readyState === ws.OPEN) 
+      if(ws.readyState === ws.OPEN)
       if(payload.formtypecode)
         if(payload.formtypecode === tempFormType)
           if(payload.formsanswersid) {
@@ -251,8 +294,8 @@ function getDataByBbox(ws, req) {
     // get all clients listening to ws
     dbSubscriber.notifications.on(channel, (payload) => {
       // Payload as passed to dbSubscriber.notify() (see below)
-      
-      if(ws.readyState === ws.OPEN) 
+
+      if(ws.readyState === ws.OPEN)
       if(payload.formtypecode)
         if(payload.formtypecode === tempFormType)
           if(payload.formsanswersid) {
@@ -292,7 +335,7 @@ function getDataByBbox(ws, req) {
     ws.close()
   })
 
-  
+
 
 }
 
@@ -339,15 +382,15 @@ function getHttpDataByBbox(req, res) {
     res.send(JSON.stringify(resTemplate))
   })
 
-  
+
 
 }
 
 /**
  * Gets only Forms data. Can have Spatial filter params
- * 
- * @param {*} ws 
- * @param {*} req 
+ *
+ * @param {*} ws
+ * @param {*} req
  */
 function getFormData(ws, req) {
   log.info('>>> hot >>> getFormData')
@@ -368,7 +411,7 @@ function getFormData(ws, req) {
   let timeEnd = null
   let fiaAttribute = null
   let user = req.query.user
-  
+
   if(timeRange) {
     timeStart = timeRange.substring(0, timeRange.indexOf('/'))
     timeEnd = timeRange.substring(timeRange.indexOf('/') + 1, timeRange.length)
@@ -379,10 +422,10 @@ function getFormData(ws, req) {
   let tempSql_Query = ''
   let tempSql_QueryById = ''
 
-  // check if the tempFormType is citizen generated data. TIP: _FORM ending 
+  // check if the tempFormType is citizen generated data. TIP: _FORM ending
   if(tempFormType.indexOf('_FORM') !== -1) {
     fiaAttribute = 'situation'
-  } 
+  }
   // spatial with point and buffer
   if((lat && lon && buffer) && (tempFormType) && (!bbox) && (!timeStart && !timeEnd)) {
     tempSql_Query = sql_query.formsAnswersData(tempFormType, lat, lon, buffer, null, null, limit, fiaAttribute, user, dbSchema, userSchema)
@@ -443,7 +486,7 @@ function getFormData(ws, req) {
     dbSubscriber.notifications.on(channel, (payload) => {
       // Payload as passed to dbSubscriber.notify() (see below)
 
-      if(ws.readyState === ws.OPEN) 
+      if(ws.readyState === ws.OPEN)
       if(payload.formtypecode)
         if(payload.formtypecode === tempFormType)
           if(payload.formsanswersid) {
@@ -485,155 +528,9 @@ function getFormData(ws, req) {
 
 }
 
-function getHttpFormData(req, res) {
-  log.info('>>> hot >>> getHttpFormData')
-  // sample url params
-  // ws://localhost:9090/hot/formsanswers?type=RAIN_FORM&lat=-23.623&lon=-46.5637&buffer=50000&limit=30
-  // wss://waterproofing.geog.uni-heidelberg.de/wss/hot/formsanswers?type=RAIN_FORM&lat=-23.623&lon=-46.5637&buffer=50000&time=2021-09-13/2021-09-17
-  // ws://localhost:9090/hot/formsanswers?type=PLUVIOMETERS_OFFICIAL&bbox=-67.98451956245826,-10.09049971309554,-67.69796501946632,-9.900096285440455
-
-  let tempFormType = req.query.type
-  let lat = req.query.lat
-  let lon = req.query.lon
-  let buffer = req.query.buffer
-  let limit = req.query.limit
-  let bbox = req.query.bbox
-  // ISO 8601 time interval string eg: 2015-01-17T09:50:04/2015-04-17T08:29:55
-  let timeRange = req.query.time
-  let timeStart = null
-  let timeEnd = null
-  
-  if(timeRange) {
-    timeStart = timeRange.substring(0, timeRange.indexOf('/'))
-    timeEnd = timeRange.substring(timeRange.indexOf('/') + 1, timeRange.length)
-  }
-
-  // check what type of data requested based on params received
-  // console.log(tempFormType, lat, lon, buffer, timeStart, timeEnd, limit, dbSchema)
-  let tempSql_Query = ''
-  let tempSql_QueryById = ''
-  // spatial with point and buffer
-  if((lat && lon && buffer) && (tempFormType) && (!bbox) && (!timeStart && !timeEnd)) {
-    tempSql_Query = sql_query.formsAnswersData(tempFormType, lat, lon, buffer, null, null, limit, dbSchema, userSchema)
-    // no fcode required as we check fcode with tempFormType befreo firing query
-    // no limit required as its query by ID which should return just 1 row
-    // tempSql_QueryById = sql_query.notifybyId(lat, lon, buffer, dbSchema)
-  }
-  // only bbox
-  else if(bbox && tempFormType && (!timeStart && !timeEnd)){
-    tempSql_Query = sql_query.formAnswersByBbox(tempFormType, bbox, dbSchema, userSchema)
-    // tempSql_QueryById = sql_query.notifybyId(lat, lon, buffer, dbSchema)
-    // tempSql_QueryById = sql_query.byIdWithBbox(tempFormType, bbox, dbSchema)
-  }
-  // spatio-temporal with point and buffer
-  else if((lat && lon && buffer) && (timeStart && timeEnd) && (tempFormType) && (!bbox)){
-    tempSql_Query = sql_query.formsAnswersData(tempFormType, lat, lon, buffer, timeStart, timeEnd, limit, dbSchema, userSchema)
-    // tempSql_QueryById = sql_query.notifybyId(lat, lon, buffer, timeStart, timeEnd, dbSchema)
-  }
-  // only form name
-  else if((!lat && !lon && !buffer) && (tempFormType) && (!bbox) && (!timeStart && !timeEnd)){
-    tempSql_Query = sql_query.formsAnswersData(tempFormType, lat, lon, buffer, null, null, limit, dbSchema, userSchema)
-    // tempSql_QueryById = sql_query.notifybyId(lat, lon, buffer, dbSchema)
-  }
-  else {
-    log.error('Invalid Parameter passed')
-    resTemplate.success = false
-    resTemplate.responseData = 'Invalid Parameter passed'
-    resTemplate.responseTimestamp = new Date().toISOString()
-    res.send(JSON.stringify(resTemplate))
-  }
-  // console.log('tempSql_Query = ', tempSql_Query)
-
-  if(tempSql_Query)
-  db.one(tempSql_Query)
-  .then( data => {
-    // check if form type doesn't exist in DB
-    if(!data.array_to_json) {
-      log.error('No data for type :'+ tempFormType)
-      resTemplate.success = false
-      resTemplate.responseData = 'No data for type :'+ tempFormType
-      resTemplate.responseTimestamp = new Date().toISOString()
-      res.send(JSON.stringify(resTemplate))
-    }
-    resTemplate.success = true
-    resTemplate.responseTimestamp = new Date().toISOString()
-    resTemplate.responseData = data
-    // console.log('sent response at ', resTemplate.responseTimestamp)
-    log.info('sent response at ', resTemplate.responseTimestamp)
-    res.send(JSON.stringify(resTemplate))
-  })
-  .catch( error => {
-    // console.log('ERROR while executing DB-query to fetch data :', error)
-    log.error('ERROR while executing DB-query to fetch data :'+ error.message)
-    resTemplate.success = false
-    resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
-    resTemplate.responseTimestamp = new Date().toISOString()
-    res.send(JSON.stringify(resTemplate))
-  })
-
-}
-
-/**
- * Gets FieldsAnswers data from the requested FormsAnswersId. Can have Temporal filter params
- * 
- * @param {*} req 
- * @param {*} res 
- */
-function getFieldAnswersData(req, res) {
-  log.info('>>> hot >>> getFieldAnswersData ', req.query)
-  const faid = req.query.faid
-
-  // ISO 8601 time interval string eg: 2015-01-17T09:50:04/2015-04-17T08:29:55
-  let timeRange = req.query.time
-  let timeStart = null
-  let timeEnd = null
-  if(timeRange) {
-    timeStart = timeRange.substring(0, timeRange.indexOf('/'))
-    timeEnd = timeRange.substring(timeRange.indexOf('/') + 1, timeRange.length)
-  }
-
-  let tempSql_Query = sql_query.fieldsAnswersData(faid, timeStart, timeEnd, dbSchema, userSchema)
-  // console.log('tempSql_Query ', tempSql_Query)
-
-  if(faid)
-    db.one(tempSql_Query)
-    .then(function (data) {
-      resTemplate.success = true
-      resTemplate.responseTimestamp = new Date().toISOString()
-      resTemplate.responseData = data
-      console.log('sent response at ', resTemplate.responseTimestamp)
-      log.info('sent response at ', resTemplate.responseTimestamp)
-      res.send(resTemplate)
-    })
-    .catch(function (error) {
-      console.log('ERROR while executing DB-query to fetch data :', error)
-      log.error('ERROR while executing DB-query to fetch data :'+ error.message)
-      resTemplate.success = false
-      resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
-      resTemplate.responseTimestamp = new Date().toISOString()
-      res.send(resTemplate)
-    })
-}
-
-function echo(ws, req) {
-  console.log('>>> hot >>> echo')
-  ws.on('message', function(msg) {
-    ws.send(msg);
-  });
-}
-
-function broadcast(ws, req) {
-  console.log('/hot/broadcast aWss = ', aWss.clients)
-  ws.on('message', message => {
-    this.getWss().clients.forEach(client => {
-      client.send(message)
-    })
-  })
-}
-
 function requestHandler(client, request) {
   // console.log('>>> requestHandler ', request.query)
-  
+
   client.room = this.setRoom(request);
   if(Object.keys(request.query).length === 0){
     // console.log('Object.keys(request.query).length ', client)
@@ -647,7 +544,7 @@ function requestHandler(client, request) {
   // console.log(`New client connected to ${client.room}`);
   log.info(`New client ${request.socket.remoteAddress} connected to ${client.room}`);
   globalWss = this.getWss()
-  
+
   if(request.url.indexOf('databybbox') !== -1 && request.url.indexOf('formsanswers') === -1)
     getDataByBbox(client, request)
   else if(request.url.indexOf('databybbox') === -1 && request.url.indexOf('formsanswers') === -1)
@@ -681,84 +578,31 @@ function closeOnTimeout(client) {
   }
 }
 
-function getCapability(req, res) {
-  log.info('>>> hot >>> getCapability ', req.query)
-
-  if(! req.query.withtimes){
-    // console.log('No time param sent with request')
-    log.error('No time param sent with request')
-    resTemplate.success = false
-    resTemplate.responseData = 'No time parameter sent with request. Please sent withtimes=true or withtimes=false'
-    resTemplate.responseTimestamp = new Date().toISOString()
-    res.send(resTemplate)
-  }
-  if(req.query.withtimes && !(req.query.withtimes === 'true' || req.query.withtimes === 'false')){
-    // console.log('No time param sent with request')
-    log.error('No time param sent with request')
-    resTemplate.success = false
-    resTemplate.responseData = 'No correct value for time parameter sent. Please sent withtimes=true or withtimes=false'
-    resTemplate.responseTimestamp = new Date().toISOString()
-    res.send(resTemplate)
-  }
-
-  if(req.query.withtimes && req.query.withtimes === 'true')
-    db.one(sql_query.getAllFormsTypesWithTime(dbSchema))
-    .then(function (data) {
-      resTemplate.success = true
-      resTemplate.responseTimestamp = new Date().toISOString()
-      resTemplate.responseData = data
-      console.log('sent response at ', resTemplate.responseTimestamp)
-      log.info('sent response at ', resTemplate.responseTimestamp)
-      res.send(resTemplate)
-    })
-    .catch(function (error) {
-      console.log('ERROR while executing DB-query to fetch data :', error)
-      log.error('ERROR while executing DB-query to fetch data :'+ error.message)
-      resTemplate.success = false
-      resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
-      resTemplate.responseTimestamp = new Date().toISOString()
-      res.send(resTemplate)
-    })
-  
-  if(req.query.withtimes && req.query.withtimes === 'false')
-    db.one(sql_query.getAllFormsTypesWithoutTime(dbSchema))
-    .then(function (data) {
-      resTemplate.success = true
-      resTemplate.responseTimestamp = new Date().toISOString()
-      resTemplate.responseData = data
-      console.log('sent response at ', resTemplate.responseTimestamp)
-      log.info('sent response at ', resTemplate.responseTimestamp)
-      res.send(resTemplate)
-    })
-    .catch(function (error) {
-      console.log('ERROR while executing DB-query to fetch data :', error)
-      log.error('ERROR while executing DB-query to fetch data :'+ error.message)
-      resTemplate.success = false
-      resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
-      resTemplate.responseTimestamp = new Date().toISOString()
-      res.send(resTemplate)
-    })
-}
-
 router.use(express.static(join(__dirname, '../../wwwroot')))
 // router.use(cors())
 
 // New Endpoints
+// Search
 router.ws('/search', requestHandler)
 router.get('/search', search)
 
+// Simple Geometry
+router.ws('/simplegeometry', requestHandler)
+router.get('/simplegeometry', simpleGeometry)
+
+
 // Old Endpoints
-router.ws('/echo', echo)
-router.ws('/broadcast', broadcast)
-router.ws('/data', requestHandler)
-
-router.ws('/databybbox', requestHandler)
-router.get('/databybbox', getHttpDataByBbox)
-
-router.ws('/formsanswers', requestHandler)
-router.get('/formsanswers', getHttpFormData)
-// router.post('/capability', getCapability)
-router.get('/capability', getCapability)
-router.get('/fieldsanswers', getFieldAnswersData)
+// router.ws('/echo', echo)
+// router.ws('/broadcast', broadcast)
+// router.ws('/data', requestHandler)
+//
+// router.ws('/databybbox', requestHandler)
+// router.get('/databybbox', getHttpDataByBbox)
+//
+// router.ws('/formsanswers', requestHandler)
+// router.get('/formsanswers', getHttpFormData)
+// // router.post('/capability', getCapability)
+// router.get('/capability', getCapability)
+// router.get('/fieldsanswers', getFieldAnswersData)
 
 module.exports = router
