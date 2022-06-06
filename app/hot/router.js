@@ -627,6 +627,71 @@ function broadcast(ws, req) {
   })
 }
 
+function getLastData(req, res){
+  log.info('>>> hot >>> getLastData')
+
+  let type = req.query.type
+  let id = req.query.id
+
+  let pluvType = 'PLUVIOMETER_FORM'
+  let othersType = ['RAIN_FORM', 'FLOODZONES_FORM', 'RIVERFLOOD_FORM']
+
+  let tempSql_Query = ''
+
+  if (type && id){
+    if(othersType.includes(type)){
+      tempSql_Query = sql_query.getLastDataForms(type, id, dbSchema, userSchema)
+    }else if(type === pluvType){
+      tempSql_Query = sql_query.getLastDataPluv(type, id, dbSchema, userSchema)
+    }else{
+      log.error('Forms type not found (type): '+type)
+      resTemplate.success = false
+      resTemplate.responseData = 'Forms type not found (type): '+type
+      resTemplate.responseTimestamp = new Date().toISOString()
+      res.send(JSON.stringify(resTemplate))
+      return
+    } 
+  }else{
+    log.error('Need to specify type and id')
+    resTemplate.success = false
+    resTemplate.responseData = 'Need to specify type and id'
+    resTemplate.responseTimestamp = new Date().toISOString()
+    res.send(JSON.stringify(resTemplate))
+    return
+  }
+
+  if(tempSql_Query !== ''){
+    db.one(tempSql_Query)
+    .then( data => {
+      // check if form type doesn't exist in DB
+      if(!data.array_to_json) {
+        log.error('No data for id :'+ id)
+        resTemplate.success = false
+        resTemplate.responseData = 'No data for id :'+ id
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+        return
+      }
+      resTemplate.success = true
+      resTemplate.responseTimestamp = new Date().toISOString()
+      resTemplate.responseData = data
+      // console.log('sent response at ', resTemplate.responseTimestamp)
+      log.info('sent response at ', resTemplate.responseTimestamp)
+      res.send(JSON.stringify(resTemplate))
+      return
+    })
+    .catch( error => {
+      // console.log('ERROR while executing DB-query to fetch data :', error)
+      log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+      resTemplate.success = false
+      resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+      resTemplate.responseTimestamp = new Date().toISOString()
+      res.send(JSON.stringify(resTemplate))
+      return
+    })
+  }
+}
+
 function requestHandler(client, request) {
   // console.log('>>> requestHandler ', request.query)
   
@@ -748,5 +813,7 @@ router.get('/formsanswers', getHttpFormData)
 // router.post('/capability', getCapability)
 router.get('/capability', getCapability)
 router.get('/fieldsanswers', getFieldAnswersData)
+// router.ws('/lastdata', requestHandler)
+router.get('/lastdata', getLastData)
 
 module.exports = router
