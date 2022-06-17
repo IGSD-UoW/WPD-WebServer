@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 var app = require('./index')
-var config = require('config')
+var config = require('./config')
 
 // logging system 
 var bole = require('bole')

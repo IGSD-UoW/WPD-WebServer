@@ -1,5 +1,6 @@
 var express = require('express')
 
+// ** *
 // var app = express()
 // var expressWs = require('express-ws')
 var expressWs = require('@small-tech/express-ws')
@@ -17,6 +18,7 @@ app.use(require('./site/router'))
 app.use('/floodmemory', require('./floodmemory/router'))
 app.use('/users', require('./user/router'))
 app.use('/hot', require('./hot/router'))
+app.use('/dashboard', require('./dashboard/router'))
 
 // FINALLY, use any error handlers
 app.use(require('./error/not-found'))
