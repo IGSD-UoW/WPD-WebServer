@@ -20,7 +20,7 @@ var log = bole('wpd-server')
 let globalWss = null;
 
 // DB CONNECTION - USES DEV_WPDAPI **
-var db = pgp(config.azurePostgresdbDEV)
+var db = pgp(config.azurePostgresdb)
 
 // const dbSchema = 'datalake';
 const dbSchema = 'public';
