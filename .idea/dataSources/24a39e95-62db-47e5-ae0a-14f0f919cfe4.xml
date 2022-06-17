@@ -3,15 +3,7 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.38">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-14416||-9223372036854775808|c|G
-14416||10|c|G
-14416||10|C|G
-14416||10|T|G
-14442||10|c|G
+      <Grants>14442||10|c|G
 14442||10|C|G
 14442||10|T|G
 20770||-9223372036854775808|c|G
@@ -36,7 +28,7 @@
 24974||-9223372036854775808|T|G
 24974||14419|T|G
 24974||24973|T|G</Grants>
-      <IntrospectionStateNumber>516352</IntrospectionStateNumber>
+      <IntrospectionStateNumber>639943</IntrospectionStateNumber>
       <ServerVersion>11.15</ServerVersion>
       <StartupTime>1652187150</StartupTime>
       <TimeZones>true ACDT
@@ -851,7 +843,7 @@ true posixrules
 14121||10|C|G
 14121||-9223372036854775808|U|G
 14121||10|U|G</Grants>
-      <IntrospectionStateNumber>516353</IntrospectionStateNumber>
+      <IntrospectionStateNumber>639943</IntrospectionStateNumber>
       <ObjectId>20770</ObjectId>
       <Relations>sequence|table|22378|22374|1
 sequence|table|22383|22380|1
@@ -4750,7 +4742,7 @@ sequence|table|22559|22553|1
 22331||14419|t|G
 22331||14419|D|G
 22331||14419|w|G</Grants>
-      <IntrospectionStateNumber>516353</IntrospectionStateNumber>
+      <IntrospectionStateNumber>639943</IntrospectionStateNumber>
       <ObjectId>2200</ObjectId>
       <StateNumber>359</StateNumber>
       <OwnerName>azure_superuser</OwnerName>

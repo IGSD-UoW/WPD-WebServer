@@ -35,7 +35,7 @@ let resTemplate = {
 }
 
 // ===============
-// SEARCH
+// 01. SEARCH
 // ===============
 
 function search(req, res) {
@@ -74,7 +74,7 @@ function search(req, res) {
 }
 
 // ===============
-// SIMPLE GEOMETRY - AFTER USER DEFINES LOCATION
+// 02. SIMPLE GEOMETRY - AFTER USER DEFINES LOCATION
 // ===============
 
 function simpleGeometry(req, res) {
@@ -114,7 +114,7 @@ function simpleGeometry(req, res) {
 }
 
 // ===============
-// PLUVIOMETER RECORDS
+// 03. PLUVIOMETER RECORDS
 // ===============
 
 function pluviometerRecords(req, res) {
@@ -157,9 +157,256 @@ function pluviometerRecords(req, res) {
 }
 
 
+// ===============
+// 04. SUMMARY
+// ===============
+
+function summary(req, res) {
+  log.info('>>> dashboard >>> summary')
+
+  // EXAMPLE QUERY STRING - ws://localhost:9090/dashboard/summary
+
+  tempSql_Query = sql_query.summary()
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
+
+// ===============
+// 05. FLOODZONES
+// ===============
+
+function floodZones(req, res) {
+  log.info('>>> dashboard >>> floodzones')
+
+  // EXAMPLE QUERY STRING -  http://localhost:9090/dashboard/floodzones?id={xxx}
+  let locationID = req.query.id;
+
+  tempSql_Query = sql_query.floodZones(locationID)
+
+  db.one(tempSql_Query)
+      .then( data => {
+
+        // check if form type doesn't exist in DB
+        if(!data?.json_build_object?.features?.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
+// ===============
+// 06. CITIZEN REPORTS OVERVIEW
+// ===============
+
+function citizenReportsOverview(req, res) {
+  log.info('>>> dashboard >>> citizen reports overview')
+
+    // EXAMPLE QUERY STRING - http://localhost:9090/dashboard/citizenreportsoverview?startDate={xxx}&endDate={xxx}
+
+  let startDate = req.query.startDate;
+  let endDate = req.query.endDate;
+
+  tempSql_Query = sql_query.citizenReportsOverview(startDate, endDate)
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        // console.log('sent response at ', resTemplate.responseTimestamp)
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        // console.log('ERROR while executing DB-query to fetch data :', error)
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
+
+// ===============
+// 07. AVG RAINFALL OVERVIEW
+// ===============
+
+function avgRainfallOverview(req, res) {
+  log.info('>>> dashboard >>> avg rainfall overview')
+
+    // EXAMPLE QUERY STRING - http://localhost:9090/dashboard/avgrainfalloverview?startDate={xxx}&endDate={xxx}
+
+  let startDate = req.query.startDate;
+  let endDate = req.query.endDate;
+
+  tempSql_Query = sql_query.avgRainfallOverview(startDate, endDate)
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        // console.log('sent response at ', resTemplate.responseTimestamp)
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        // console.log('ERROR while executing DB-query to fetch data :', error)
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
+// ===============
+// 08. CITIZEN EVENTS
+// ===============
+
+function citizenEvents(req, res) {
+  log.info('>>> dashboard >>> citizen events')
+
+    // EXAMPLE QUERY STRING - http://localhost:9090/dashboard/citizenevents?id={xxx}&startDate={xxx}&endDate={xxx}&type={xxx}
+
+  let locationID = req.query.id;
+  let formType = req.query.type;
+  let startDate = req.query.startDate;
+  let endDate = req.query.endDate;
+
+  tempSql_Query = sql_query.citizenEvents(locationID, formType, startDate, endDate)
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        // console.log('sent response at ', resTemplate.responseTimestamp)
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        // console.log('ERROR while executing DB-query to fetch data :', error)
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
+// ===============
+// 09. PLACE SUMMARY
+// ===============
+
+function placeSummary(req, res) {
+  log.info('>>> dashboard >>> place summary')
+
+  // EXAMPLE QUERY STRING - ws://localhost:9090/dashboard/placesummary?id={xxx}&startDate={xxx}&endDate={xxx}
+
+  let locationID = req.query.id;
+  let startDate = req.query.startDate;
+  let endDate = req.query.endDate;
+
+  tempSql_Query = sql_query.placeSummary(locationID, startDate, endDate)
+
+  db.one(tempSql_Query)
+      .then( data => {
+        // check if form type doesn't exist in DB
+        if(!data.array_to_json) {
+          log.error('No data')
+          resTemplate.success = false
+          resTemplate.responseData = 'No data'
+          resTemplate.responseTimestamp = new Date().toISOString()
+          res.send(JSON.stringify(resTemplate))
+          return
+        }
+        resTemplate.success = true
+        resTemplate.responseTimestamp = new Date().toISOString()
+        resTemplate.responseData = data
+        log.info('sent response at ', resTemplate.responseTimestamp)
+        res.send(JSON.stringify(resTemplate))
+      })
+      .catch( error => {
+        log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+        resTemplate.success = false
+        resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+        resTemplate.responseTimestamp = new Date().toISOString()
+        res.send(JSON.stringify(resTemplate))
+      })
+}
+
 
 // ======================
-// OLD CODE STARTS HERE
+// REQUEST HANDLER
 // ======================
 
 function requestHandler(client, request) {
@@ -219,6 +466,30 @@ router.get('/simplegeometry', simpleGeometry)
 // Pluviometer Records
 router.ws('/pluviometers', requestHandler)
 router.get('/pluviometers', pluviometerRecords)
+
+// Summary
+router.ws('/summary', requestHandler)
+router.get('/summary', summary)
+
+// Floodzones
+router.ws('/floodzones', requestHandler)
+router.get('/floodzones', floodZones)
+
+// Citizen Reports Overview
+router.ws('/citizenreportsoverview', requestHandler)
+router.get('/citizenreportsoverview', citizenReportsOverview)
+
+// Citizen Reports Overview
+router.ws('/avgrainfalloverview', requestHandler)
+router.get('/avgrainfalloverview', avgRainfallOverview)
+
+// Citizen Events
+router.ws('/citizenevents', requestHandler)
+router.get('/citizenevents', citizenEvents)
+
+// Place Summary
+router.ws('/placesummary', requestHandler)
+router.get('/placesummary', placeSummary)
 
 
 module.exports = router
