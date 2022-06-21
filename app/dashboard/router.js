@@ -404,6 +404,51 @@ function placeSummary(req, res) {
       })
 }
 
+// ===============
+// 10. FLOODZONES BY BBOX
+// ===============
+function getFloodzonesByBbox(req, res) {
+  log.info('>>> dashboard >>> floodzones by bbox')
+  // sample url params
+  // ws://localhost:9090/dashboard/floodzonesbybbox?&bbox=-67.98451956245826,-10.09049971309554,-67.69796501946632,-9.900096285440455
+
+  let bbox = req.query.bbox
+
+  // check what type of data requested based on params received
+  let tempSql_Query = ''
+  // only bbox
+  if(bbox)
+    tempSql_Query = sql_query.floodZonesByBBOX(bbox, dbSchema, userSchema)
+
+  db.one(tempSql_Query)
+  .then( data => {
+      console.log(data)
+    // check if form type doesn't exist in DB
+    if(!data?.json_build_object?.features?.array_to_json) {
+      log.error('No data')
+      resTemplate.success = false
+      resTemplate.responseData = 'No data'
+      resTemplate.responseTimestamp = new Date().toISOString()
+      res.send(JSON.stringify(resTemplate))
+      return
+    }
+    resTemplate.success = true
+    resTemplate.responseTimestamp = new Date().toISOString()
+    resTemplate.responseData = data
+    // console.log('sent response at ', resTemplate.responseTimestamp)
+    log.info('sent response at ', resTemplate.responseTimestamp)
+    res.send(JSON.stringify(resTemplate))
+  })
+  .catch( error => {
+    // console.log('ERROR while executing DB-query to fetch data :', error)
+    log.error('ERROR while executing DB-query to fetch data :'+ error.message)
+    resTemplate.success = false
+    resTemplate.responseData = 'ERROR while executing DB-query to fetch data :'+ error.message
+    resTemplate.responseTimestamp = new Date().toISOString()
+    res.send(JSON.stringify(resTemplate))
+  })
+}
+
 
 // ======================
 // REQUEST HANDLER
@@ -486,6 +531,10 @@ router.get('/avgrainfalloverview', avgRainfallOverview)
 // Citizen Events
 router.ws('/citizenevents', requestHandler)
 router.get('/citizenevents', citizenEvents)
+
+// Floodzones by BBOX
+router.ws('/floodzonesbybbox', requestHandler)
+router.get('/floodzonesbybbox', getFloodzonesByBbox)
 
 // Place Summary
 router.ws('/placesummary', requestHandler)

@@ -149,50 +149,6 @@ sql_query.summary = () => {
 }
 
 
-// ===============
-// 05. FLOOD ZONES
-// ===============
-
-/**
- * @param {number} locationID
- * @returns {string}
- */
-
-sql_query.floodZones = (locationID) => {
-    console.log('>>> floodZones')
-
-    return `
-
-    with features as (
-    select array_to_json(array_agg(t)) from (
-    select
-    'Feature' as "type",
-    row_number() over () id,
-    fzon.id zoneid,
-    acl.value classvalue,
-    ayr.value yearvalue,
-    'O' as submissiontype,
-    st_asgeojson(fzon.geom,6)::json as "geometry"
-    from formsanswers fpl, fieldsanswers apl, formsanswers fzon, fieldsanswers acl, fieldsanswers ayr
-    where fpl.id = apl.idformsanswers and
-    fzon.id = acl.idformsanswers and
-    fzon.id = ayr.idformsanswers and
-    fzon.idforms = 4 and
-    fpl.idforms = 12 and
-    acl.idfields = 24 and
-    ayr.idfields = 25 and
-    apl.idfields = 82 and
-    apl.value like '${locationID}' and
-    st_intersects(fpl.geom, fzon.geom)
-    order by fzon.id limit 5000) as t )
-    select json_build_object(
-    'type', 'FeatureCollection',
-    'features', (features.*)
-    ) from features
-
-    `
-}
-
 
 // ===============
 // 06. CITIZEN REPORTS OVERVIEW
@@ -341,5 +297,92 @@ sql_query.placeSummary = (locationID, startDate, endDate) => {
 	) citizenReporters
 	
 ) formsagg;
+    `
+}
+
+
+// ===============
+// 05. FLOOD ZONES
+// ===============
+
+/**
+ * @param {number} locationID
+ * @returns {string}
+ */
+
+sql_query.floodZones = (locationID) => {
+    console.log('>>> floodZones')
+
+    return `
+    with features as (
+    select array_to_json(array_agg(t)) from (
+    select
+    'Feature' as "type",
+    row_number() over () id,
+    fzon.id zoneid,
+    acl.value classvalue,
+    ayr.value yearvalue,
+    'O' as submissiontype,
+    st_asgeojson(fzon.geom,6)::json as "geometry"
+    from formsanswers fpl, fieldsanswers apl, formsanswers fzon, fieldsanswers acl, fieldsanswers ayr
+    where fpl.id = apl.idformsanswers and
+    fzon.id = acl.idformsanswers and
+    fzon.id = ayr.idformsanswers and
+    fzon.idforms = 4 and
+    fpl.idforms = 12 and
+    acl.idfields = 24 and
+    ayr.idfields = 25 and
+    apl.idfields = 82 and
+    apl.value like '${locationID}' and
+    st_intersects(fpl.geom, fzon.geom)
+    order by fzon.id limit 500) as t )
+    select json_build_object(
+    'type', 'FeatureCollection',
+    'features', (features.*)
+    ) from features
+    `
+}
+
+
+// ===============
+// 10. FLOODZONES BY BBOX
+// ===============
+
+/**
+ * Query to get all floodzones for the given spatial point with its buffer range and its fieldAnswers (attributes)
+ * belonging to a specific forms.code
+ *
+ * @param {comma-seperated-numbers} bbox
+ * @param {string} db_schema
+ * @returns {string}
+ */
+sql_query.floodZonesByBBOX = (bbox, db_schema, userSchema) => {
+    console.log('>>> dataByBbox ')
+
+
+    return `
+    with features as (
+select array_to_json(array_agg(fa))
+from
+(
+  select
+    fa.id as formsanswersid,
+    acl.value classvalue,
+    'O' as submissiontype,
+    ST_AsGeoJSON(ST_SimplifyPreserveTopology(geom::geometry, 0.0001))::json as geometry,
+    'Feature' as type
+  from ${db_schema}.formsanswers fa
+  inner join ${db_schema}.forms f on (fa.idforms = f.id )
+  inner join ${db_schema}.fieldsanswers acl on (acl.idformsanswers = fa.id)
+  where 1=1
+    and ST_Intersects(fa.geom, ST_MakeEnvelope(${bbox}, 4326))
+    and f.code = 'FLOODZONES_OFFICIAL'
+    and acl.idfields = 24
+  limit 500
+) fa)
+select json_build_object(
+'type', 'FeatureCollection',
+'features', (features.*)
+) from features
     `
 }
