@@ -272,29 +272,39 @@ sql_query.placeSummary = (locationID, startDate, endDate) => {
 
     return `
         select array_to_json(array_agg(formsagg))
- from (
+  from (
 	
- 	select  
+  select  
 	(select count(distinct(ff.idusersinformer)) 
 	from formsanswers ff, fieldsanswers af, formsanswers fpl, fieldsanswers apl
 	where fpl.id = apl.idformsanswers and ff.id = af.idformsanswers and
 	ff.idforms in (10, 11) and fpl.idforms = 12 and
 	apl.idfields = 82 and
 	ff.idusersinformer != 1 and
-	apl.value like '${locationID}' and -- Parameter
-	extract(epoch from af.dtfilling) * 1000 between 1647718000000 and 1655310000000 and -- Parameters 
-	st_intersects(ff.geom, fpl.geom)) floodReports, 
+	apl.value like '${locationID}' and  -- Parameter
+	extract(epoch from af.dtfilling) * 1000 between '${startDate}' and '${endDate}' and  -- Parameters 
+	ff.geom && fpl.geom
+	) floodReports, 
 	(select avg(ar.value::float) 
 	from formsanswers fr, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
 	where fpl.id = apl.idformsanswers and ar.idformsanswers = fr.id and
 	ar.idfields = 59 and fr.idforms = 8 and
 	apl.idfields = 82 and fpl.idforms = 12 and
 	fr.idusersinformer != 1 and
+	apl.value like '${locationID}' and  -- Parameter
+	extract(epoch from ar.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
+	fpl.geom && fr.geom
+	) avgdailyrainfall,
+	( select count (distinct(fre.idusersinformer))
+	from formsanswers fre, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
+	where fre.id = ar.idformsanswers and fpl.id = apl.idformsanswers and
+	fre.idforms in (7, 8, 9, 10, 11)  and
+	apl.idfields = 82 and fpl.idforms = 12 and
+	fre.idusersinformer != 1 and
 	apl.value like '${locationID}' and -- Parameter
 	extract(epoch from ar.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
-	st_intersects(fr.geom, fpl.geom)) avgdailyrainfall,
-	( select 11
-	) citizenReporters
+	fre.geom && fpl.geom 
+	) activereporters
 	
 ) formsagg;
     `
@@ -335,7 +345,7 @@ sql_query.floodZones = (locationID) => {
     apl.idfields = 82 and
     apl.value like '${locationID}' and
     st_intersects(fpl.geom, fzon.geom)
-    order by fzon.id limit 500) as t )
+    limit 500) as t )
     select json_build_object(
     'type', 'FeatureCollection',
     'features', (features.*)
