@@ -445,8 +445,10 @@ sql_query.dataQuery = (fCode, lat, lon, buffer, timeStart, timeEnd, limit, db_sc
         inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fa.id) 
         inner join ${db_schema}.fields ff on (ff.id = fia.idfields)
         inner join ${userSchema}.users ui on fa.idusersinformer = ui.id
+        left join ${db_schema}.editdata ed on (fia.id = ed.idfieldsanswers)
         
         where 1=1 ${whereClause}
+            AND ed.idfieldsanswers IS NULL
         group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
         ${limitClause}
     ) fa 
@@ -516,8 +518,6 @@ sql_query.formsAnswersData = (fcode, lat, lon, buffer, timeStart, timeEnd, limit
             fa.id as formsanswersid, 
             f.code as formcode,
             ui.id as formsanswersuserinformer,
-            ui.nickname as formsanswersuserinformernickname,
-            ui.institution as formsanswersuserinformerinstitution,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -526,11 +526,13 @@ sql_query.formsAnswersData = (fcode, lat, lon, buffer, timeStart, timeEnd, limit
         inner join ${db_schema}.forms f on (fa.idforms = f.id )
         inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fa.id) 
         inner join ${userSchema}.users ui on fa.idusersinformer = ui.id
+        left join ${db_schema}.editdata ed on (fia.id = ed.idfieldsanswers)
         ${fieldsTable}
         where 
             ${whereClause}
             and f.code = '${fcode}'
-        group by formsanswersid, formcode, formsanswersuserinformer, formsanswersuserinformernickname, formsanswersuserinformerinstitution, formsanswerslatitude, formsanswerslongitude
+            and ed.idfieldsanswers IS NULL
+        group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
         ${limitClause}
     ) fa 
     `
@@ -566,6 +568,8 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
             fa.id as formsanswersid, 
             f.code as formcode,
             ui.id as formsanswersuserinformer,
+            ui.nickname as formsanswersuserinformernickname,
+            ui.institution as formsanswersuserinformerinstitution,
             fa.latitude as formsanswerslatitude,
             fa.longitude as formsanswerslongitude,
             ${clippedGeom}
@@ -590,6 +594,74 @@ sql_query.fieldsAnswersData = (faid, timeStart, timeEnd, db_schema, userSchema) 
     ) fa 
     `
 }
+
+sql_query.getLastDataForms = (type, id, db_schema, userSchema) => {
+    console.log(">>> getLastDataForms")
+    return `select array_to_json(array_agg(fa))
+    from(
+      select
+          fa.id as formsanswersid,
+          f.code as formcode,
+          ui.id as formsanswersuserinformer,
+          fa.latitude as formsanswerslatitude,
+          fa.longitude as formsanswerslongitude,
+          json_agg(json_build_object(
+              'fieldsanswersfieldsid',fia.idfields,
+            'fieldname', ff."name", 
+            'fieldsanswersvalue', fia.value, 
+            'fieldsanswersdtfilling',fia.dtfilling
+          ) order by fia.dtfilling
+        ) as array_to_json
+      from ${db_schema}.formsanswers fa
+        inner join ${db_schema}.forms f on (fa.idforms = f.id )
+        inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fa.id) 
+        inner join ${userSchema}.users ui on fa.idusersinformer = ui.id
+        inner join ${db_schema}.fields ff on (ff.id = fia.idfields)
+        left join ${db_schema}.editdata ed on (fia.id = ed.idfieldsanswers)
+      where
+          fa.id = ${id}
+          and f.code = '${type}'
+          and ed.idfieldsanswers IS NULL
+      group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+    )fa
+    `
+}
+
+sql_query.getLastDataPluv = (type, id, db_schema, userSchema) => {
+    console.log(">>> getLastDataPluv")
+
+    return `select array_to_json(array_agg(fa))
+    from(
+      select
+          fap.id as formsanswersid,
+          f.code as formcode,
+          ui.id as formsanswersuserinformer,
+          fap.latitude as formsanswerslatitude,
+          fap.longitude as formsanswerslongitude,
+          json_agg(json_build_object(
+            'fieldsanswersfieldsid',fia.idfields,
+            'fieldname', ff."name", 
+            'fieldsanswersvalue', fia.value, 
+            'fieldsanswersdtfilling',fia.dtfilling
+          ) order by fia.dtfilling
+        ) as array_to_json
+      from ${db_schema}.formsanswers fa
+        inner join ${db_schema}.formsanswers fap on (fa.idusersinformer = fap.idusersinformer)
+        inner join ${db_schema}.forms f on (fap.idforms = f.id )
+        inner join ${db_schema}.fieldsanswers fia on (fia.idformsanswers = fap.id) 
+        inner join ${userSchema}.users ui on fap.idusersinformer = ui.id
+        inner join ${db_schema}.fields ff on (ff.id = fia.idfields)
+        left join ${db_schema}.editdata ed on (fia.id = ed.idfieldsanswers)
+      where
+          fa.id = ${id}
+          and ed.idfieldsanswers IS NULL
+          and f.code = '${type}'
+      group by formsanswersid, formcode, formsanswersuserinformer, formsanswerslatitude, formsanswerslongitude
+      order by fap.id desc
+      limit 1
+    )fa
+    `
+}   
 
 /**
  * Query to get all forms data in JSON format
