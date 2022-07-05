@@ -285,7 +285,7 @@ sql_query.placeSummary = (locationID, startDate, endDate) => {
 	extract(epoch from af.dtfilling) * 1000 between '${startDate}' and '${endDate}' and  -- Parameters 
 	ff.geom && fpl.geom
 	) floodReports, 
-	(select avg(ar.value::float) 
+	(select max(ar.value::float) 
 	from formsanswers fr, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
 	where fpl.id = apl.idformsanswers and ar.idformsanswers = fr.id and
 	ar.idfields = 59 and fr.idforms = 8 and
@@ -294,7 +294,7 @@ sql_query.placeSummary = (locationID, startDate, endDate) => {
 	apl.value like '${locationID}' and  -- Parameter
 	extract(epoch from ar.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
 	fpl.geom && fr.geom
-	) avgdailyrainfall,
+	) maxdailyrainfall,
 	( select count (distinct(fre.idusersinformer))
 	from formsanswers fre, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
 	where fre.id = ar.idformsanswers and fpl.id = apl.idformsanswers and
