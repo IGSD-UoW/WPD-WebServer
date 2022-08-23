@@ -68,39 +68,50 @@ sql_query.pluviometerRecords = (locationID, startDate, endDate) => {
 
     return `
         select array_to_json(array_agg(formsagg))
-        from (
-	    select fs.latitude latitude, fs.longitude longitude,
-		'C' as submissiontype, u.institutiontype institutionname, u.institution institutioninfo,
-		( 	
-		select array_to_json(array_agg(meagg))
-	  	from (
-				select am.value, am.dtfilling as timestamp
-				from formsanswers fm, fieldsanswers am
-				where fm.id = am.idformsanswers and
-				fm.idforms = 8 and
-				am.idfields = 59 and
-				fm.idusersinformer = fs.idusersinformer and
-				extract(epoch from am.dtfilling) * 1000 between '${startDate}' and '${endDate}'
-				order by am.dtfilling
-		) meagg ) as records
-        from formsanswers fs, formsanswers fp, fieldsanswers ap, auth.users u
-        where fp.id = ap.idformsanswers and
-        fs.idusersinformer = u.id and
-        fs.idusersinformer != 1 and
-        fs.idforms = 7 and
-        fp.idforms = 12 and
-        ap.idfields = 82 and
-        ap.value like '${locationID}' and
-        st_intersects(fp.geom, fs.geom) and
-        ( 	
-	    select count(am.value)
-				from formsanswers fm, fieldsanswers am
-				where fm.id = am.idformsanswers and
-					fm.idforms = 8 and
-					am.idfields = 59 and
-					fm.idusersinformer = fs.idusersinformer and
-				extract(epoch from am.dtfilling) * 1000 between '${startDate}' and '${endDate}'
-		    ) > 0
+        from (select fs.latitude                              latitude,
+                     fs.longitude                             longitude,
+                     'C' as                                   submissiontype,
+                     count(distinct (fs.idusersinformer))     total_pluviometers,
+                     (select array_to_json(array_agg(meagg))) records
+              from (select pl.id,
+                           pl.idusersinformer,
+                           st_y(ST_ClosestPoint(st_union(g.geom), pl.geom::geometry)) latitude,
+                           st_x(ST_ClosestPoint(st_union(g.geom), pl.geom::geometry)) longitude,
+                           pl.geom                                                    geom
+                    from formsanswers pl,
+                         grid.hex300_point g
+                    where pl.idforms = 7
+                      and pl.idusersinformer != 1 and
+                          g.geom && st_expand(pl.geom::geometry, 0.003)
+                    group by pl.id, pl.idforms, pl.idusersinformer) as fs,
+                   (select am.id measureid, fm.idusersinformer, am.value, am.dtfilling as timestamp
+                    from formsanswers fm, fieldsanswers am
+                    where fm.id = am.idformsanswers
+                      and
+                        fm.idforms = 8
+                      and
+                        am.idfields = 59
+                      and
+                        extract (epoch from am.dtfilling) * 1000 between '${startDate}'
+                      and '${endDate}' -- Parameter
+                   ) as me,
+                   (select value, dtfilling as timestamp
+                    from fieldsanswers
+                    where idfields = 59
+                    order by dtfilling) meagg,
+                   formsanswers fp,
+                   fieldsanswers ap
+              where fp.id = ap.idformsanswers
+                and fp.idforms = 12
+                and ap.idfields = 82
+                and ap.value like '${locationID}'
+                and -- Parameter
+                  st_intersects(fp.geom, fs.geom)
+                and fs.idusersinformer = me.idusersinformer
+                and meagg.timestamp = me.timestamp
+              group by fs.latitude, fs.longitude
+              having count(me.measureid) > 0
+                 and count(distinct (fs.idusersinformer)) > 0
         ) 
         formsagg;
     `
@@ -272,38 +283,45 @@ sql_query.placeSummary = (locationID, startDate, endDate) => {
 
     return `
         select array_to_json(array_agg(formsagg))
-  from (
+ from (
 	
-  select  
+ 	select  
 	(select count(distinct(ff.idusersinformer)) 
 	from formsanswers ff, fieldsanswers af, formsanswers fpl, fieldsanswers apl
 	where fpl.id = apl.idformsanswers and ff.id = af.idformsanswers and
 	ff.idforms in (10, 11) and fpl.idforms = 12 and
 	apl.idfields = 82 and
 	ff.idusersinformer != 1 and
-	apl.value like '${locationID}' and  -- Parameter
-	extract(epoch from af.dtfilling) * 1000 between '${startDate}' and '${endDate}' and  -- Parameters 
+	apl.value like '${locationID}' and -- Parameter
+	extract(epoch from af.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
 	ff.geom && fpl.geom
-	) floodReports, 
-	(select max(ar.value::float) 
+	--st_intersects(ff.geom, fpl.geom)
+	) floodreports, 
+	(select max(day_value)			-- change to nest the daily aggregation
+	from (select max(ar.value::float) day_value  -- change to calculate daily values grouping by day
 	from formsanswers fr, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
 	where fpl.id = apl.idformsanswers and ar.idformsanswers = fr.id and
 	ar.idfields = 59 and fr.idforms = 8 and
 	apl.idfields = 82 and fpl.idforms = 12 and
 	fr.idusersinformer != 1 and
-	apl.value like '${locationID}' and  -- Parameter
+	apl.value like '${locationID}' and -- Parameter
 	extract(epoch from ar.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
 	fpl.geom && fr.geom
+	group by date_trunc('day', ar.dtfilling) -- change to aggregate by day
+	) day_values
+	--st_intersects(fpl.geom, fr.geom)
 	) maxdailyrainfall,
 	( select count (distinct(fre.idusersinformer))
 	from formsanswers fre, fieldsanswers ar, formsanswers fpl, fieldsanswers apl
 	where fre.id = ar.idformsanswers and fpl.id = apl.idformsanswers and
-	fre.idforms in (7, 8, 9, 10, 11)  and
+	fre.idforms in (7, 8, 9, 10, 11) and
 	apl.idfields = 82 and fpl.idforms = 12 and
 	fre.idusersinformer != 1 and
 	apl.value like '${locationID}' and -- Parameter
 	extract(epoch from ar.dtfilling) * 1000 between '${startDate}' and '${endDate}' and -- Parameters 
-	fre.geom && fpl.geom 
+	fre.geom && fpl.geom --and
+	--st_intersects(fre.geom, fpl.geom)
+	
 	) activereporters
 	
 ) formsagg;
