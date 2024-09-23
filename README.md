@@ -58,6 +58,10 @@ a- The database user used to handle the connection with Postgres must be able to
 ```sql
 grant all on schema public to yourdbuser;
 grant all on schema grid to yourdbuser;
+
+-- confirm that all tables are visibles by your user
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA grid TO yourdbuser;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA grid TO yourdbuser;
 ```
 
 -b Postgis extension must be enabled and the
