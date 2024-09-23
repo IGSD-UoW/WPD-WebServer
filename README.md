@@ -49,6 +49,38 @@ open localhost:8080 in browser and do installation steps
 docker run -d -p 8600:8080 --name geoserverWpd -e SAMPLE_DATA=true -e COMMUNITY_EXTENSIONS=ogr-datastore-plugin kartoza/geoserver:2.16.2
 ```
 
+### Set up database permissions to ensure all endpoints work fine
+
+Some components require special attention. Over the different migration processes, our team have identified some special considerations:
+
+a- The database user used to handle the connection with Postgres must be able to connect and query DB objects. The user is set in the [config.js](./app/config_sample.js) file
+
+```sql
+grant all on schema public to yourdbuser;
+grant all on schema grid to yourdbuser;
+```
+
+-b Postgis extension must be enabled and the
+
+```sql
+-- Enable postgis
+SELECT * FROM pg_extension;
+
+-- Check the postgis version enabled
+SELECT PostGIS_Version();
+```
+Note: Sometimes the table 'spatial_ref_sys' might be empty, do check alternatives to populate that [table](https://postgis.net/docs/manual-1.4/ch04.html).
+
+-c Materialised views sometimes require special permissions, so better to enable them to ensure '/dashboard' enpoint works
+
+```sql
+-- Repopulate the materialised view after migration
+REFRESH MATERIALIZED VIEW mat_view_search;
+
+-- Grant the required permissions to your user
+GRANT all ON mat_view_search TO yourdbuser;
+```
+
 # Deployment
 
 - Login 
